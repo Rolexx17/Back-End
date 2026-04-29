@@ -30,6 +30,15 @@ class AuthController extends BaseController {
         }
     };
 
+    getAllUsers = async (req, res) => {
+        try {
+            const [rows] = await db.query('SELECT id, name, email, role, created_at FROM users ORDER BY id DESC');
+            this.sendSuccess(res, 200, "Daftar semua user", rows);
+        } catch (error) {
+            this.sendError(res, 500, "Gagal mengambil daftar user", error.message);
+        }
+    };
+
     getUserProfile = async (req, res) => {
         try {
             const [rows] = await db.query('SELECT id, name, email, role, created_at FROM users WHERE id = ?', [req.params.id]);
@@ -49,6 +58,17 @@ class AuthController extends BaseController {
             this.sendSuccess(res, 200, "Profil berhasil diupdate", { id: req.params.id, name, email });
         } catch (error) {
             this.sendError(res, 500, "Gagal update profil", error.message);
+        }
+    };
+
+    deleteUser = async (req, res) => {
+        try {
+            const [result] = await db.query('DELETE FROM users WHERE id = ?', [req.params.id]);
+            if (result.affectedRows === 0) return this.sendError(res, 404, "User tidak ditemukan");
+            
+            this.sendSuccess(res, 200, "User berhasil dihapus");
+        } catch (error) {
+            this.sendError(res, 500, "Gagal menghapus user", error.message);
         }
     };
 }

@@ -33,6 +33,32 @@ class SocialController extends BaseController {
         }
     };
 
+    updateMatchmaking = async (req, res) => {
+        try {
+            const { skill_level, looking_for, time_schedule, note } = req.body;
+            const [result] = await db.query(
+                'UPDATE matchmakings SET skill_level = ?, looking_for = ?, time_schedule = ?, note = ? WHERE id = ?',
+                [skill_level, looking_for, time_schedule, note, req.params.id]
+            );
+            
+            if (result.affectedRows === 0) return this.sendError(res, 404, "Posting mabar tidak ditemukan");
+            this.sendSuccess(res, 200, "Posting mabar berhasil diupdate", { id: req.params.id });
+        } catch (error) {
+            this.sendError(res, 500, "Gagal update mabar", error.message);
+        }
+    };
+
+    deleteMatchmaking = async (req, res) => {
+        try {
+            const [result] = await db.query('DELETE FROM matchmakings WHERE id = ?', [req.params.id]);
+            if (result.affectedRows === 0) return this.sendError(res, 404, "Posting mabar tidak ditemukan");
+            
+            this.sendSuccess(res, 200, "Posting mabar berhasil dihapus");
+        } catch (error) {
+            this.sendError(res, 500, "Gagal menghapus mabar", error.message);
+        }
+    };
+
     getReviewsByField = async (req, res) => {
         try {
             const [rows] = await db.query(
@@ -68,29 +94,28 @@ class SocialController extends BaseController {
         }
     };
 
-    updateMatchmaking = async (req, res) => {
+    updateReview = async (req, res) => {
         try {
-            const { skill_level, looking_for, time_schedule, note } = req.body;
+            const { rating, comment } = req.body;
             const [result] = await db.query(
-                'UPDATE matchmakings SET skill_level = ?, looking_for = ?, time_schedule = ?, note = ? WHERE id = ?',
-                [skill_level, looking_for, time_schedule, note, req.params.id]
+                'UPDATE reviews SET rating = ?, comment = ? WHERE id = ?',
+                [rating, comment, req.params.id]
             );
-            
-            if (result.affectedRows === 0) return this.sendError(res, 404, "Posting mabar tidak ditemukan");
-            this.sendSuccess(res, 200, "Posting mabar berhasil diupdate", { id: req.params.id });
-        } catch (error) {
-            this.sendError(res, 500, "Gagal update mabar", error.message);
-        }
-    };
 
-    deleteMatchmaking = async (req, res) => {
-        try {
-            const [result] = await db.query('DELETE FROM matchmakings WHERE id = ?', [req.params.id]);
-            if (result.affectedRows === 0) return this.sendError(res, 404, "Posting mabar tidak ditemukan");
-            
-            this.sendSuccess(res, 200, "Posting mabar berhasil dihapus");
+            if (result.affectedRows === 0) return this.sendError(res, 404, "Ulasan tidak ditemukan");
+
+            const [reviewData] = await db.query('SELECT field_id FROM reviews WHERE id = ?', [req.params.id]);
+            if (reviewData.length > 0) {
+                const field_id = reviewData[0].field_id;
+                await db.query(
+                    'UPDATE fields SET rating = (SELECT IFNULL(AVG(rating), 0) FROM reviews WHERE field_id = ?) WHERE id = ?',
+                    [field_id, field_id]
+                );
+            }
+
+            this.sendSuccess(res, 200, "Ulasan berhasil diupdate", { id: req.params.id, rating, comment });
         } catch (error) {
-            this.sendError(res, 500, "Gagal menghapus mabar", error.message);
+            this.sendError(res, 500, "Gagal mengupdate ulasan", error.message);
         }
     };
 

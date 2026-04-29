@@ -8,9 +8,10 @@ const router = express.Router();
 
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
-
+router.get('/users', authController.getAllUsers);
 router.get('/users/:id', authController.getUserProfile);
 router.put('/users/:id', authController.updateUserProfile);
+router.delete('/users/:id', authController.deleteUser);
 
 router.get('/fields', fieldController.getFields);
 router.get('/fields/:id', fieldController.getFieldById);
@@ -30,6 +31,7 @@ router.delete('/matchmakings/:id', socialController.deleteMatchmaking);
 
 router.get('/fields/:fieldId/reviews', socialController.getReviewsByField);
 router.post('/fields/:fieldId/reviews', socialController.createReview);
+router.put('/reviews/:id', socialController.updateReview); // Ditambahkan
 router.delete('/reviews/:id', socialController.deleteReview);
 
 export default router;
