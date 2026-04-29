@@ -4,7 +4,6 @@ import BaseController from '../utils/BaseController.js';
 class SocialController extends BaseController {
     constructor() { super('Social'); }
 
-    // Matchmaking
     getMatchmakings = async (req, res) => {
         try {
             const query = `
@@ -34,18 +33,38 @@ class SocialController extends BaseController {
         }
     };
 
-    // Reviews
     getReviewsByField = async (req, res) => {
         try {
             const [rows] = await db.query(
                 `SELECT r.*, u.name as reviewer_name FROM reviews r 
                  JOIN users u ON r.user_id = u.id 
-                 WHERE r.field_id = ?`, 
+                 WHERE r.field_id = ? ORDER BY r.id DESC`, 
                 [req.params.fieldId]
             );
             this.sendSuccess(res, 200, "Ulasan lapangan", rows);
         } catch (error) {
             this.sendError(res, 500, "Gagal mengambil ulasan", error.message);
+        }
+    };
+
+    createReview = async (req, res) => {
+        try {
+            const { user_id, rating, comment } = req.body;
+            const field_id = req.params.fieldId;
+            
+            const [result] = await db.query(
+                'INSERT INTO reviews (user_id, field_id, rating, comment) VALUES (?, ?, ?, ?)',
+                [user_id, field_id, rating, comment]
+            );
+
+            await db.query(
+                'UPDATE fields SET rating = (SELECT IFNULL(AVG(rating), 0) FROM reviews WHERE field_id = ?) WHERE id = ?',
+                [field_id, field_id]
+            );
+
+            this.sendSuccess(res, 201, "Ulasan berhasil ditambahkan", { id: result.insertId, field_id, rating, comment });
+        } catch (error) {
+            this.sendError(res, 500, "Gagal menambahkan ulasan", error.message);
         }
     };
 }

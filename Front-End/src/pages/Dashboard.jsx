@@ -1,25 +1,112 @@
-import { User, Settings, Clock, MapPin } from 'lucide-react';
-
-const historyData = [
-  { id: 'INV-001', field: 'Grand Emerald Pitch', date: '28 Apr 2026', time: '19:00 - 21:00', status: 'Pending', price: 'Rp 500.000' },
-  { id: 'INV-002', field: 'Onyx Indoor Stadium', date: '25 Apr 2026', time: '16:00 - 17:00', status: 'Success', price: 'Rp 200.000' },
-];
+import { useState, useEffect } from 'react';
+import { User, Settings, Clock, MapPin, XCircle, Trash2, Edit2, CheckCircle2 } from 'lucide-react';
+import Notification from '../components/Notification';
 
 export default function Dashboard() {
+  const [historyData, setHistoryData] = useState([]);
+  const [profile, setProfile] = useState({ name: 'Rolexx17', email: 'user@lumina.com' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [notif, setNotif] = useState({ show: false, msg: '' });
+  
+  const userId = 1; 
+
+  useEffect(() => {
+    fetchProfile();
+    fetchBookings();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${userId}`);
+      const data = await res.json();
+      if (data.success && data.data) setProfile(data.data);
+    } catch (error) {
+      console.warn("Gagal load profile, pakai dummy");
+    }
+  };
+
+  const fetchBookings = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/bookings/user/${userId}`);
+      const data = await res.json();
+      if (data.success && data.data) setHistoryData(data.data);
+    } catch (error) {
+      console.warn("Gagal load bookings");
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      await fetch(`http://localhost:5000/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profile.name, email: profile.email })
+      });
+      setIsEditing(false);
+      setNotif({ show: true, msg: "Profil berhasil diperbarui" });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleCancelBooking = async (id) => {
+    if(!window.confirm("Yakin ingin membatalkan pesanan ini?")) return;
+    try {
+      await fetch(`http://localhost:5000/api/bookings/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Cancelled' })
+      });
+      setNotif({ show: true, msg: "Booking berhasil dibatalkan" });
+      fetchBookings();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteBooking = async (id) => {
+    if(!window.confirm("Yakin ingin menghapus riwayat ini permanen?")) return;
+    try {
+      await fetch(`http://localhost:5000/api/bookings/${id}`, {
+        method: 'DELETE'
+      });
+      setNotif({ show: true, msg: "Riwayat berhasil dihapus" });
+      fetchBookings();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <Notification message={notif.msg} isVisible={notif.show} onClose={() => setNotif({show: false, msg: ''})} />
+      
       {/* Sidebar Profile */}
       <div className="lg:col-span-1 space-y-6">
-        <div className="bg-white dark:bg-luxury-cardDark border border-gray-200 dark:border-gray-800 rounded-3xl p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="bg-white dark:bg-luxury-cardDark border border-gray-200 dark:border-gray-800 rounded-3xl p-8 text-center shadow-lg transition-all duration-300 relative">
+          <button onClick={() => setIsEditing(!isEditing)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-luxury-gold transition"><Edit2 className="w-4 h-4"/></button>
           <div className="w-24 h-24 mx-auto bg-gradient-to-tr from-luxury-gold to-yellow-200 rounded-full mb-4 flex items-center justify-center p-1 shadow-lg shadow-luxury-gold/20">
             <div className="w-full h-full bg-white dark:bg-luxury-cardDark rounded-full flex items-center justify-center">
               <User className="w-10 h-10 text-gray-400" />
             </div>
           </div>
-          <h2 className="text-xl font-bold font-serif mb-1">Rolexx17</h2>
-          <span className="px-3 py-1 bg-gradient-to-r from-gray-900 to-black dark:from-luxury-gold dark:to-yellow-600 text-white dark:text-black text-xs font-bold rounded-full">
-            VIP Member
-          </span>
+          
+          {isEditing ? (
+            <form onSubmit={handleUpdateProfile} className="space-y-3 mt-4 text-left">
+              <input type="text" value={profile.name} onChange={(e) => setProfile({...profile, name: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-700 text-sm" />
+              <input type="email" value={profile.email} onChange={(e) => setProfile({...profile, email: e.target.value})} className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-700 text-sm" />
+              <button type="submit" className="w-full py-2 bg-luxury-gold text-white rounded-lg text-sm font-bold flex justify-center items-center gap-2"><CheckCircle2 className="w-4 h-4"/> Simpan</button>
+            </form>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold font-serif mb-1">{profile.name}</h2>
+              <p className="text-xs text-gray-500 mb-3">{profile.email}</p>
+              <span className="px-3 py-1 bg-gradient-to-r from-gray-900 to-black dark:from-luxury-gold dark:to-yellow-600 text-white dark:text-black text-xs font-bold rounded-full">
+                VIP Member
+              </span>
+            </>
+          )}
         </div>
 
         <div className="bg-white dark:bg-luxury-cardDark border border-gray-200 dark:border-gray-800 rounded-3xl p-4 shadow-sm">
@@ -37,33 +124,49 @@ export default function Dashboard() {
         <h2 className="text-3xl font-serif font-bold border-b border-gray-200 dark:border-gray-800 pb-4">Riwayat Pemesanan</h2>
         
         <div className="space-y-4">
-          {historyData.map((item, i) => (
-            <div key={i} className="group bg-white dark:bg-luxury-cardDark border border-gray-200 dark:border-gray-800 p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:-translate-y-1 hover:shadow-xl hover:shadow-luxury-gold/5 transition-all duration-300 cursor-pointer">
-              <div className="flex gap-4 items-center">
+          {historyData.length > 0 ? historyData.map((item) => (
+            <div key={item.id} className="group bg-white dark:bg-luxury-cardDark border border-gray-200 dark:border-gray-800 p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between shadow-sm hover:shadow-md transition">
+              <div className="flex gap-4 items-center mb-4 md:mb-0">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-900 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
                   <MapPin className="text-gray-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">{item.field}</h3>
+                  <h3 className="font-bold text-lg">{item.field_name || `Lapangan ID ${item.field_id}`}</h3>
                   <p className="text-sm text-gray-500 flex items-center gap-2">
-                    {item.date} • {item.time}
+                    {new Date(item.booking_date).toLocaleDateString()} • {item.time_slot}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">ID: {item.id}</p>
+                  <p className="text-xs text-gray-400 mt-1">ID: BKG-{item.id}</p>
                 </div>
               </div>
               
-              <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2">
-                <span className={`px-4 py-1.5 rounded-full text-xs font-bold border ${
-                  item.status === 'Pending' 
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-800' 
-                  : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-500 border-emerald-200 dark:border-emerald-800'
-                }`}>
-                  {item.status}
-                </span>
-                <span className="font-bold text-lg">{item.price}</span>
+              <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+                <div className="flex gap-4 items-center">
+                  <span className="font-bold text-lg">Rp {Number(item.total_price).toLocaleString()}</span>
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold border ${
+                    item.status === 'Pending' ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 border-yellow-200' : 
+                    item.status === 'Success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200' :
+                    'bg-red-50 dark:bg-red-900/20 text-red-600 border-red-200'
+                  }`}>
+                    {item.status}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {item.status === 'Pending' && (
+                    <button onClick={() => handleCancelBooking(item.id)} className="text-xs flex items-center gap-1 text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-lg">
+                      <XCircle className="w-3 h-3"/> Batalkan
+                    </button>
+                  )}
+                  {(item.status === 'Success' || item.status === 'Cancelled') && (
+                    <button onClick={() => handleDeleteBooking(item.id)} className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">
+                      <Trash2 className="w-3 h-3"/> Hapus Riwayat
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-gray-500 text-center py-10">Belum ada riwayat pemesanan.</p>
+          )}
         </div>
       </div>
     </div>

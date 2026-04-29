@@ -38,6 +38,29 @@ class BookingController extends BaseController {
             this.sendError(res, 500, "Gagal mengambil histori", error.message);
         }
     };
+
+    updateBookingStatus = async (req, res) => {
+        try {
+            const { status } = req.body;
+            const [result] = await db.query('UPDATE bookings SET status = ? WHERE id = ?', [status, req.params.id]);
+            
+            if (result.affectedRows === 0) return this.sendError(res, 404, "Booking tidak ditemukan");
+            this.sendSuccess(res, 200, "Status booking berhasil diupdate", { id: req.params.id, status });
+        } catch (error) {
+            this.sendError(res, 500, "Gagal update status booking", error.message);
+        }
+    };
+
+    deleteBooking = async (req, res) => {
+        try {
+            const [result] = await db.query('DELETE FROM bookings WHERE id = ?', [req.params.id]);
+            
+            if (result.affectedRows === 0) return this.sendError(res, 404, "Booking tidak ditemukan");
+            this.sendSuccess(res, 200, "Riwayat booking berhasil dihapus");
+        } catch (error) {
+            this.sendError(res, 500, "Gagal menghapus booking", error.message);
+        }
+    };
 }
 
 export default new BookingController();

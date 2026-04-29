@@ -9,6 +9,9 @@ const router = express.Router();
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 
+router.get('/users/:id', authController.getUserProfile);
+router.put('/users/:id', authController.updateUserProfile);
+
 router.get('/fields', fieldController.getFields);
 router.get('/fields/:id', fieldController.getFieldById);
 router.post('/fields', fieldController.createField);
@@ -16,9 +19,13 @@ router.post('/fields', fieldController.createField);
 router.post('/bookings', bookingController.createBooking);
 router.get('/bookings/user/:userId', bookingController.getUserBookings);
 
+router.put('/bookings/:id/status', bookingController.updateBookingStatus);
+router.delete('/bookings/:id', bookingController.deleteBooking);
+
 router.get('/matchmakings', socialController.getMatchmakings);
 router.post('/matchmakings', socialController.createMatchmaking);
 
 router.get('/fields/:fieldId/reviews', socialController.getReviewsByField);
+router.post('/fields/:fieldId/reviews', socialController.createReview);
 
 export default router;
