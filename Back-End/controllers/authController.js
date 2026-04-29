@@ -68,7 +68,7 @@ class AuthController extends BaseController {
             
             this.sendSuccess(res, 200, "User berhasil dihapus");
         } catch (error) {
-            this.sendError(res, 500, "Gagal menghapus user", error.message);
+            this.sendError(res, 500, "Gagal menghapus user (Pastikan user tidak terikat dengan data pesanan/booking)", error.message);
         }
     };
 }

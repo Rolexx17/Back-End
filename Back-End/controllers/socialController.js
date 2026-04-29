@@ -6,14 +6,18 @@ class SocialController extends BaseController {
 
     getMatchmakings = async (req, res) => {
         try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const offset = (page - 1) * limit;
+
             const query = `
                 SELECT m.*, u.name as host_name, f.name as field_name 
                 FROM matchmakings m
                 JOIN users u ON m.user_id = u.id
                 JOIN fields f ON m.field_id = f.id
-                ORDER BY m.id DESC
+                ORDER BY m.id DESC LIMIT ? OFFSET ?
             `;
-            const [rows] = await db.query(query);
+            const [rows] = await db.query(query, [limit, offset]);
             this.sendSuccess(res, 200, "Data mabar", rows);
         } catch (error) {
             this.sendError(res, 500, "Gagal mengambil data", error.message);
@@ -97,21 +101,17 @@ class SocialController extends BaseController {
     updateReview = async (req, res) => {
         try {
             const { rating, comment } = req.body;
-            const [result] = await db.query(
-                'UPDATE reviews SET rating = ?, comment = ? WHERE id = ?',
-                [rating, comment, req.params.id]
-            );
-
-            if (result.affectedRows === 0) return this.sendError(res, 404, "Ulasan tidak ditemukan");
-
+            
             const [reviewData] = await db.query('SELECT field_id FROM reviews WHERE id = ?', [req.params.id]);
-            if (reviewData.length > 0) {
-                const field_id = reviewData[0].field_id;
-                await db.query(
-                    'UPDATE fields SET rating = (SELECT IFNULL(AVG(rating), 0) FROM reviews WHERE field_id = ?) WHERE id = ?',
-                    [field_id, field_id]
-                );
-            }
+            if (reviewData.length === 0) return this.sendError(res, 404, "Ulasan tidak ditemukan");
+
+            await db.query('UPDATE reviews SET rating = ?, comment = ? WHERE id = ?', [rating, comment, req.params.id]);
+
+            const field_id = reviewData[0].field_id;
+            await db.query(
+                'UPDATE fields SET rating = (SELECT IFNULL(AVG(rating), 0) FROM reviews WHERE field_id = ?) WHERE id = ?',
+                [field_id, field_id]
+            );
 
             this.sendSuccess(res, 200, "Ulasan berhasil diupdate", { id: req.params.id, rating, comment });
         } catch (error) {
@@ -121,8 +121,18 @@ class SocialController extends BaseController {
 
     deleteReview = async (req, res) => {
         try {
-            const [result] = await db.query('DELETE FROM reviews WHERE id = ?', [req.params.id]);
-            if (result.affectedRows === 0) return this.sendError(res, 404, "Ulasan tidak ditemukan");
+            const [reviewData] = await db.query('SELECT field_id FROM reviews WHERE id = ?', [req.params.id]);
+            if (reviewData.length === 0) return this.sendError(res, 404, "Ulasan tidak ditemukan");
+            
+            const field_id = reviewData[0].field_id;
+
+            await db.query('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+            
+            // Kalkulasi ulang setelah dihapus
+            await db.query(
+                'UPDATE fields SET rating = (SELECT IFNULL(AVG(rating), 0) FROM reviews WHERE field_id = ?) WHERE id = ?',
+                [field_id, field_id]
+            );
             
             this.sendSuccess(res, 200, "Ulasan berhasil dihapus");
         } catch (error) {

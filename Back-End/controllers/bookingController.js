@@ -26,6 +26,37 @@ class BookingController extends BaseController {
         }
     };
 
+    getAllBookings = async (req, res) => {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const status = req.query.status || '';
+            const offset = (page - 1) * limit;
+
+            let query = `SELECT b.*, u.name as user_name, f.name as field_name FROM bookings b JOIN users u ON b.user_id = u.id JOIN fields f ON b.field_id = f.id`;
+            let countQuery = `SELECT COUNT(*) as total FROM bookings b`;
+            const queryParams = [];
+
+            if (status) {
+                query += ` WHERE b.status = ?`;
+                countQuery += ` WHERE b.status = ?`;
+                queryParams.push(status);
+            }
+
+            query += ` ORDER BY b.id DESC LIMIT ? OFFSET ?`;
+            queryParams.push(limit, offset);
+
+            const [rows] = await db.query(query, queryParams);
+            const [totalRows] = await db.query(countQuery, status ? [status] : []);
+
+            this.sendSuccess(res, 200, "Berhasil mengambil semua data booking", rows, {
+                page, limit, totalItems: totalRows[0].total, totalPages: Math.ceil(totalRows[0].total / limit)
+            });
+        } catch (error) {
+            this.sendError(res, 500, "Gagal mengambil data booking", error.message);
+        }
+    };
+
     getUserBookings = async (req, res) => {
         try {
             const [rows] = await db.query(

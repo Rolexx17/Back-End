@@ -20,6 +20,7 @@ router.put('/fields/:id', fieldController.updateField);
 router.delete('/fields/:id', fieldController.deleteField);
 
 router.post('/bookings', bookingController.createBooking);
+router.get('/bookings', bookingController.getAllBookings);
 router.get('/bookings/user/:userId', bookingController.getUserBookings);
 router.put('/bookings/:id/status', bookingController.updateBookingStatus);
 router.delete('/bookings/:id', bookingController.deleteBooking);
@@ -31,7 +32,7 @@ router.delete('/matchmakings/:id', socialController.deleteMatchmaking);
 
 router.get('/fields/:fieldId/reviews', socialController.getReviewsByField);
 router.post('/fields/:fieldId/reviews', socialController.createReview);
-router.put('/reviews/:id', socialController.updateReview); // Ditambahkan
+router.put('/reviews/:id', socialController.updateReview);
 router.delete('/reviews/:id', socialController.deleteReview);
 
 export default router;
