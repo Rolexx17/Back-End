@@ -48,15 +48,22 @@ export default function FieldDetail() {
   const handlePostReview = async (e) => {
     e.preventDefault();
     if(!newReview.comment) return;
+
+    // Mengambil user dari local storage, fallback ke ID 1 jika guest / error
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    const userId = user ? user.id : 1;
+
     try {
       await fetch(`http://localhost:5000/api/fields/${id}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 1, rating: newReview.rating, comment: newReview.comment }) // Dummy user_id = 1
+        body: JSON.stringify({ user_id: userId, rating: newReview.rating, comment: newReview.comment })
       });
       setNewReview({ rating: 5, comment: '' });
       setNotif({ show: true, msg: "Ulasan berhasil diposting!" });
       fetchReviews();
+      fetchFieldDetail(); // Panggil ulang ini untuk update angka rating keseluruhan di UI jika diperlukan
     } catch (error) {
       console.error(error);
     }

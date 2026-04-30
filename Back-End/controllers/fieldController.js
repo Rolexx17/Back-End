@@ -116,6 +116,55 @@ class FieldController extends BaseController {
             this.sendError(res, 500, "Gagal menghapus lapangan", error.message);
         }
     };
+
+    // Mengambil ulasan untuk lapangan tertentu
+    getReviews = async (req, res) => {
+        try {
+            const [rows] = await db.query(
+                'SELECT r.id, r.rating, r.comment, u.name as reviewer_name FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.field_id = ? ORDER BY r.id DESC',
+                [req.params.id]
+            );
+            this.sendSuccess(res, 200, "Ulasan lapangan", rows);
+        } catch (error) {
+            this.sendError(res, 500, "Gagal mengambil ulasan", error.message);
+        }
+    };
+
+    // Menambahkan ulasan dan memperbarui rata-rata rating lapangan
+    addReview = async (req, res) => {
+        try {
+            const { user_id, rating, comment } = req.body;
+            const field_id = req.params.id;
+
+            if (!user_id || !rating || !comment) {
+                return this.sendError(res, 400, "Data ulasan (user_id, rating, comment) harus diisi");
+            }
+
+            // 1. Insert ke tabel reviews
+            await db.query(
+                'INSERT INTO reviews (user_id, field_id, rating, comment) VALUES (?, ?, ?, ?)',
+                [user_id, field_id, rating, comment]
+            );
+
+            // 2. Hitung rata-rata rating untuk lapangan ini
+            const [ratingResult] = await db.query(
+                'SELECT AVG(rating) as avg_rating FROM reviews WHERE field_id = ?',
+                [field_id]
+            );
+            
+            const avgRating = ratingResult[0].avg_rating ? parseFloat(ratingResult[0].avg_rating).toFixed(1) : 0;
+
+            // 3. Update tabel fields dengan rating baru
+            await db.query(
+                'UPDATE fields SET rating = ? WHERE id = ?',
+                [avgRating, field_id]
+            );
+
+            this.sendSuccess(res, 201, "Ulasan berhasil ditambahkan");
+        } catch (error) {
+            this.sendError(res, 500, "Gagal menambahkan ulasan", error.message);
+        }
+    };
 }
 
 export default new FieldController();
