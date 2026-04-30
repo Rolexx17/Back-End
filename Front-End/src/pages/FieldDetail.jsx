@@ -14,14 +14,26 @@ const timeSlots = [
 
 export default function FieldDetail() {
   const { id } = useParams();
+  const [field, setField] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [notif, setNotif] = useState({ show: false, msg: '' });
 
   useEffect(() => {
+    fetchFieldDetail();
     fetchReviews();
   }, [id]);
+
+  const fetchFieldDetail = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/fields/${id}`);
+      const data = await res.json();
+      if (data.success) setField(data.data);
+    } catch (error) {
+      console.warn("Gagal load detail lapangan");
+    }
+  };
 
   const fetchReviews = async () => {
     try {
@@ -50,15 +62,17 @@ export default function FieldDetail() {
     }
   };
 
+  if (!field) return <div className="text-center py-20 text-gray-500">Memuat detail lapangan...</div>;
+
   return (
     <div className="max-w-5xl mx-auto space-y-12">
       <Notification message={notif.msg} isVisible={notif.show} onClose={() => setNotif({show: false, msg: ''})} />
 
       {/* Hero Image */}
       <div className="w-full h-[400px] rounded-3xl overflow-hidden relative bg-gray-900">
-        <img src="https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover" alt="Field" />
+        <img src={field.image || "https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover" alt={field.name} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-8">
-          <h1 className="text-5xl font-serif text-white font-bold">Grand Emerald Pitch</h1>
+          <h1 className="text-5xl font-serif text-white font-bold">{field.name}</h1>
         </div>
       </div>
 
@@ -66,9 +80,10 @@ export default function FieldDetail() {
         {/* Info & Reviews */}
         <div className="lg:col-span-2 space-y-8">
           <section>
-            <h2 className="text-2xl font-bold mb-4 border-b border-gray-200 dark:border-gray-800 pb-2">Deskripsi Fasilitas VVIP</h2>
+            <h2 className="text-2xl font-bold mb-4 border-b border-gray-200 dark:border-gray-800 pb-2">Deskripsi Fasilitas</h2>
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-              Lapangan vinyl premium dengan standar internasional. Dilengkapi dengan ruang ganti ber-AC, shower air panas, tribun penonton eksklusif, dan pencahayaan 1000 lux yang anti-silau.
+              Tipe Lapangan: <strong>{field.type}</strong>. 
+              <br/>Lapangan dengan standar internasional. Dilengkapi dengan fasilitas pendukung premium untuk memaksimalkan performa bermain Anda.
             </p>
           </section>
 
@@ -151,10 +166,11 @@ export default function FieldDetail() {
             <div className="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Harga / Jam</span>
-                <span className="font-bold text-lg">Rp 250.000</span>
+                <span className="font-bold text-lg">Rp {Number(field.price).toLocaleString()}</span>
               </div>
               <Link 
                 to={selectedSlot ? "/booking-form" : "#"} 
+                state={{ field, selectedSlot }}
                 className={`w-full block text-center py-4 rounded-full font-bold transition-all ${
                   selectedSlot 
                   ? 'bg-black dark:bg-white text-white dark:text-black hover:scale-[1.02] shadow-xl' 

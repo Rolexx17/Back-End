@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Check, UploadCloud, FileText } from 'lucide-react';
 import Notification from '../components/Notification';
 
@@ -7,6 +8,10 @@ export default function BookingForm() {
   const [file, setFile] = useState(null);
   const [showNotif, setShowNotif] = useState(false);
   const fileInputRef = useRef(null);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { field, selectedSlot } = location.state || {};
 
   const handleDragOver = (e) => e.preventDefault();
   const handleDrop = (e) => {
@@ -16,12 +21,41 @@ export default function BookingForm() {
     }
   };
 
-  const handleFinish = () => {
-    setShowNotif(true);
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 2000);
+  const handleFinish = async () => {
+    if (!field || !selectedSlot) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+      const payload = {
+        user_id: 1, // Dummy user_id
+        field_id: field.id,
+        booking_date: today,
+        time_slot: selectedSlot,
+        total_price: field.price
+      };
+
+      const res = await fetch('http://localhost:5000/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setShowNotif(true);
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      } else {
+        alert(data.message || 'Gagal membuat pesanan');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan menghubungi server');
+    }
   };
+
+  if (!field) return <div className="text-center py-20">Data pemesanan tidak valid. Silakan kembali ke halaman lapangan.</div>;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -34,7 +68,7 @@ export default function BookingForm() {
         
         {['Detail', 'Pembayaran', 'Selesai'].map((label, idx) => (
           <div key={idx} className="flex flex-col items-center gap-2">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 shadow-lg ${step > idx ? 'bg-luxury-gold text-white scale-110 shadow-luxury-gold/40' : 'bg-gray-200 dark:bg-gray-800 text-gray-500'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 shadow-lg ${step > idx ? 'bg-luxury-gold text-white scale-110 shadow-luxury-gold/50' : 'bg-white text-gray-400 border border-gray-200 dark:bg-gray-800 dark:border-gray-700'}`}>
               {step > idx + 1 ? <Check className="w-5 h-5" /> : idx + 1}
             </div>
             <span className={`text-sm font-medium ${step >= idx + 1 ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>{label}</span>
@@ -48,10 +82,10 @@ export default function BookingForm() {
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-2xl font-serif font-bold">Ringkasan Pesanan</h2>
             <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <div className="flex justify-between mb-4"><span className="text-gray-500">Lapangan</span> <span className="font-bold">Grand Emerald Pitch</span></div>
-              <div className="flex justify-between mb-4"><span className="text-gray-500">Jadwal</span> <span className="font-bold">28 April 2026, 19:00 - 21:00</span></div>
+              <div className="flex justify-between mb-4"><span className="text-gray-500">Lapangan</span> <span className="font-bold">{field.name}</span></div>
+              <div className="flex justify-between mb-4"><span className="text-gray-500">Jadwal</span> <span className="font-bold">Hari ini, {selectedSlot}</span></div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-between text-lg">
-                <span className="text-gray-500">Total Pembayaran</span> <span className="font-bold text-luxury-gold">Rp 500.000</span>
+                <span className="text-gray-500">Total Pembayaran</span> <span className="font-bold text-luxury-gold">Rp {Number(field.price).toLocaleString()}</span>
               </div>
             </div>
             <button onClick={() => setStep(2)} className="w-full py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
@@ -63,13 +97,13 @@ export default function BookingForm() {
         {step === 2 && (
           <div className="space-y-6 animate-fade-in">
             <h2 className="text-2xl font-serif font-bold">Upload Bukti Transfer</h2>
-            <p className="text-sm text-gray-500 mb-4">Transfer ke BCA 123456789 a.n Lumina Arena sebesar <strong className="text-gray-900 dark:text-white">Rp 500.000</strong></p>
+            <p className="text-sm text-gray-500 mb-4">Transfer ke BCA 123456789 a.n Lumina Arena sebesar <strong className="text-gray-900 dark:text-white">Rp {Number(field.price).toLocaleString()}</strong></p>
             
             <div 
               onDragOver={handleDragOver} 
               onDrop={handleDrop}
               onClick={() => fileInputRef.current.click()}
-              className="border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-luxury-gold dark:hover:border-luxury-gold rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-900 group"
+              className="border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-luxury-gold dark:hover:border-luxury-gold rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all group"
             >
               <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => setFile(e.target.files[0])} accept="image/*" />
               {file ? (
@@ -89,7 +123,7 @@ export default function BookingForm() {
 
             <div className="flex gap-4">
               <button onClick={() => setStep(1)} className="px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">Kembali</button>
-              <button onClick={handleFinish} disabled={!file} className={`flex-1 py-4 rounded-xl font-bold transition-all duration-300 shadow-lg ${file ? 'bg-black dark:bg-white text-white dark:text-black hover:-translate-y-1 hover:shadow-xl' : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'}`}>
+              <button onClick={handleFinish} disabled={!file} className={`flex-1 py-4 rounded-xl font-bold transition-all duration-300 shadow-lg ${file ? 'bg-black dark:bg-white text-white dark:text-black hover:-translate-y-1' : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'}`}>
                 Selesaikan Pembayaran
               </button>
             </div>
