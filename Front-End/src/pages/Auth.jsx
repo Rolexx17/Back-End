@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import Notification from '../components/Notification';
 
 export default function Auth() {
@@ -8,6 +8,7 @@ export default function Auth() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [notif, setNotif] = useState({ show: false, msg: '' });
   const navigate = useNavigate();
 
@@ -27,7 +28,6 @@ export default function Auth() {
       if (data.success) {
         setNotif({ show: true, msg: isLogin ? 'Login berhasil!' : 'Registrasi berhasil!' });
         if (isLogin) {
-          // Set user dummy di local storage
           localStorage.setItem('user', JSON.stringify(data.data.user));
           setTimeout(() => navigate('/'), 1500);
         } else {
@@ -106,12 +106,19 @@ export default function Auth() {
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input 
-              type="password" 
+              type={showPassword ? "text" : "password"} 
               placeholder="Password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-luxury-gold outline-none" 
+              className="w-full pl-12 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-luxury-gold outline-none" 
             />
+            <button 
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-luxury-gold transition-colors focus:outline-none"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
 
           <button type="submit" className="w-full flex items-center justify-center gap-2 py-4 mt-6 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold hover:-translate-y-1 hover:shadow-lg transition-all group">
