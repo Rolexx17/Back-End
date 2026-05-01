@@ -41,9 +41,89 @@ Aplikasi ini dibangun menggunakan arsitektur modern **React (Frontend)** dan **N
 ## 🚀 Panduan Instalasi & Menjalankan Aplikasi
 
 ### 1. Persiapan Database
-1. Buka MySQL / phpMyAdmin Anda.
-2. Buat database baru, misalnya `lumina_arena`.
-3. Jalankan query SQL (skema tabel) yang terdapat pada file konfigurasi database untuk membuat tabel `users`, `fields`, `bookings`, `matchmakings`, dan `reviews` beserta data dummy lapangan.
+1. Buka MySQL Anda
+2. Salin dan jalankan query berikut
+
+```sql
+CREATE DATABASE lumina_arena;
+USE lumina_arena;
+
+-- 1. Tabel Users
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    password VARCHAR(255),
+    role VARCHAR(20) DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Tabel Fields
+CREATE TABLE fields (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    type VARCHAR(50),
+    price DECIMAL(10, 2),
+    rating FLOAT DEFAULT 0,
+    image VARCHAR(255),
+    description TEXT
+);
+
+-- 3. Tabel Bookings
+CREATE TABLE bookings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    field_id INT,
+    booking_date DATE,
+    time_slot VARCHAR(20),
+    total_price DECIMAL(10, 2),
+    payment_proof VARCHAR(255),
+    status ENUM('Pending', 'Success', 'Cancelled') DEFAULT 'Pending',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (field_id) REFERENCES fields(id)
+);
+
+-- 4. Tabel Matchmakings
+CREATE TABLE matchmakings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    field_id INT,
+    skill_level VARCHAR(50),
+    looking_for INT,
+    time_schedule VARCHAR(100),
+    note TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (field_id) REFERENCES fields(id)
+);
+
+-- 5. Tabel Reviews
+CREATE TABLE reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    field_id INT,
+    rating INT,
+    comment TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (field_id) REFERENCES fields(id)
+);
+
+-- Insert Data Dummy
+INSERT INTO fields (name, type, price, rating, image, description) VALUES 
+('Grand Emerald Pitch', 'Vinyl Premium', 250000, 4.9, 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=800', 'Lapangan vinyl premium dengan standar internasional.'),
+('Royal Synthetic Arena', 'Rumput Sintetis', 300000, 4.8, 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=800', 'Rumput sintetis kualitas FIFA PRO.');
+
+-- Trigger Update Rating Otomatis
+DELIMITER //
+CREATE TRIGGER after_review_delete
+AFTER DELETE ON reviews
+FOR EACH ROW
+BEGIN
+    DECLARE new_avg DECIMAL(10,1);
+    SELECT IFNULL(AVG(rating), 0) INTO new_avg FROM reviews WHERE field_id = OLD.field_id;
+    UPDATE fields SET rating = new_avg WHERE id = OLD.field_id;
+END //
+DELIMITER ;
+```
 
 ### 2. Setup Backend
 1. Buka terminal, masuk ke folder `Back-End`:
